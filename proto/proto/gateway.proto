@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package auth;
+
+option go_package = "";//TODO: заполнить option
+
+service Auth{
+  rpc AuthWithHH (AuthRequest) returns (AuthResponse);
+  rpc RefreshToken (RefreshTokenRequest) returns (AuthResponse);
+  rpc Logout (LogoutRequest) returns (LogoutResponse);
+}
+
+message AuthRequest{
+  string code = 1;
+}
+
+message AuthResponse{
+  string access_token = 1;//токен доступа
+  string refresh_token = 2;//токен обновления
+  string token_type = 3;
+  int64 expires_in = 4;
+}
+
+message RefreshTokenRequest{
+  string refresh_token = 1;
+}
+
+message LogoutRequest{
+  string refresh_token = 1;
+}
+
+message LogoutResponse{
+  bool success = 1;
+}
