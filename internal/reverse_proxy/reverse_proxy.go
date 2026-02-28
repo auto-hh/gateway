@@ -24,13 +24,14 @@ func NewReverseProxy(backendUrl, frontendUrl *url.URL, backendHost, frontendHost
 	}
 }
 
-func (proxy *ReverseProxy) Start() {
-	http.HandleFunc("/", handlers.ProxyHandler)
-
-	err := http.ListenAndServe(proxy.frontendHost, nil)
+func (proxy *ReverseProxy) Start(addr string) error {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", handlers.ProxyHandler)
+	err := http.ListenAndServe(addr, mux)
 	if err != nil {
-		panic(fmt.Errorf("reverse_proxy.Start: %v", err))
+		return fmt.Errorf("reverse_proxy.Start: %v", err)
 	}
+	return nil
 }
 
 func (proxy *ReverseProxy) Stop() {}
