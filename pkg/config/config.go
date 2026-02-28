@@ -7,17 +7,19 @@ import (
 	"strings"
 )
 
-func MustGet(key string) string { //используем для проверки наличия системной переменной
-	val := os.Getenv(key)
+type ConfigKey string
+
+func (key ConfigKey) MustGet() string { //используем для проверки наличия системной переменной
+	val := os.Getenv(string(key))
 	if val == "" {
-		panic(fmt.Sprintf("config.MustGet: %s required variable is not set", val))
+		panic(fmt.Sprintf("config.MustGet: %s required variable is not set", key))
 	}
 
 	return val
 }
 
-func Get(key string, defaultVal string) string { //само получение переменной
-	if val := os.Getenv(key); val != "" {
+func (key ConfigKey) Get(defaultVal string) string { //само получение переменной
+	if val := os.Getenv(string(key)); val != "" {
 		return val
 	}
 	return defaultVal
