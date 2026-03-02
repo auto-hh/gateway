@@ -1,3 +1,8 @@
 package repository
 
-//работа с redis
+type Repo interface {
+	Get()
+	Set()
+	Delete()
+	Init()
+}
