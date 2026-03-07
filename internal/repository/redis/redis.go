@@ -58,8 +58,8 @@ func (r *Repo) Get(ctx context.Context, key string) (string, error) {
 	return r.client.Get(ctx, key).Result()
 }
 
-func (r *Repo) Set(ctx context.Context, key string, value string) error {
-	return r.client.Set(ctx, key, value, 0).Err()
+func (r *Repo) Set(ctx context.Context, key string, value string, expirationTime time.Duration) error {
+	return r.client.Set(ctx, key, value, expirationTime).Err()
 }
 
 func (r *Repo) Delete(ctx context.Context, key string) error {
