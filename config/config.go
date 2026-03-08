@@ -92,7 +92,8 @@ func NewConfig() *Config {
 		repoDialTimeout:  time.Duration(repoDialTimeout) * time.Second,
 		repoReadTimeout:  time.Duration(repoReadTimeout) * time.Second,
 		repoWriteTimeout: time.Duration(repoWriteTimeout) * time.Second,
-		//TODO:hh блок
+		//TODO: hh блок
+		//TODO: таймауты
 	}
 }
 

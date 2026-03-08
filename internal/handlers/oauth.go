@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"gateway/internal/repository"
+	"gateway/internal/service/oauth"
 	"net/http"
 	"net/url"
 	"strings"
@@ -18,39 +18,15 @@ import (
 
 const SessionIdAgeTime = int(24 * time.Hour / time.Second)
 
-type AppData struct {
-	clientId     string
-	redirectUri  string
-	clientSecret string
-	name         string
-	version      string
-	devContact   string
-}
-
-func NewAppData(clientId, clientSecret, appName, appVersion, appDevContact, redirectUri string) *AppData {
-	return &AppData{
-		clientId:     clientId,
-		clientSecret: clientSecret,
-		redirectUri:  redirectUri,
-		name:         appName,
-		version:      appVersion,
-		devContact:   appDevContact,
-	}
-}
-
 type OAuthHandler struct {
-	ctx     context.Context
-	repo    repository.Repository
-	appData *AppData
+	service *oauth.Service
 	client  *http.Client
 }
 
-func NewOAuthHandler(ctx context.Context, appData *AppData, repo repository.Repository) *OAuthHandler {
+func NewOAuthHandler(ctx context.Context, Service *oauth.Service) *OAuthHandler {
 	client := &http.Client{}
 	return &OAuthHandler{
-		ctx:     ctx,
-		repo:    repo,
-		appData: appData,
+		service: Service,
 		client:  client,
 	}
 }
@@ -64,6 +40,7 @@ func (o *OAuthHandler) Begin(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	var sessionId string
 
 	if sessionIdCookie == nil || sessionIdCookie.Value == "" {
@@ -87,33 +64,13 @@ func (o *OAuthHandler) Begin(w http.ResponseWriter, r *http.Request) {
 		sessionId = sessionIdCookie.Value
 	}
 
-	state, err := generateState() // state новый для каждого запроса
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	//положить в redis
-	err = o.repo.Set(o.ctx, fmt.Sprintf("state_%s", sessionId), state, time.Minute*5)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
 	var redirectUrl *url.URL
 
-	redirectUrl, err = url.Parse("https://hh.ru/oauth/authorize")
+	redirectUrl, err = o.service.BuildCodeRequest(r.Context(), sessionId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	params := redirectUrl.Query()
-	params.Set("response_type", "code")
-	params.Set("client_id", o.appData.clientId)
-	params.Set("redirect_uri", o.appData.redirectUri)
-	params.Set("state", state)
-	redirectUrl.RawQuery = params.Encode()
 
 	http.Redirect(w, r, redirectUrl.String(), http.StatusFound)
 }
@@ -156,8 +113,8 @@ func (o *OAuthHandler) Complete(w http.ResponseWriter, r *http.Request) {
 	code := r.URL.Query().Get("code")
 
 	params := url.Values{}
-	params.Set("client_id", o.appData.clientId)
-	params.Set("client_secret", o.appData.clientSecret)
+	params.Set("client_id", o.service.GetClientId())
+	params.Set("client_secret", o.service.GetClientSecret())
 	params.Set("code", code)
 	params.Set("grant_type", "authorization_code")
 	params.Set("redirect_uri", "/")
@@ -168,7 +125,7 @@ func (o *OAuthHandler) Complete(w http.ResponseWriter, r *http.Request) {
 		"https://hh.ru/oauth/token",
 		strings.NewReader(params.Encode()),
 	)
-	request.Header.Set("User-Agent", fmt.Sprintf("%s/%s (%s)", o.appData.name, o.appData.version, o.appData.devContact))
+	request.Header.Set("User-Agent", fmt.Sprintf("%s/%s (%s)", o.service.GetName(), o.service.GetVersion(), o.service.GetDevContact()))
 	response, err := o.client.Do(request)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
