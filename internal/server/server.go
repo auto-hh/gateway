@@ -2,9 +2,10 @@ package server
 
 import (
 	"fmt"
+	"gateway/config/modules"
 	"gateway/internal/handlers"
+	"gateway/internal/service/oauth"
 	"net/http"
-	"net/url"
 )
 
 type Server struct {
@@ -12,23 +13,24 @@ type Server struct {
 	oauthHandler *handlers.OAuthHandler
 }
 
-func NewServer(backendUrl, frontendUrl *url.URL, backendHost, frontendHost string) *Server {
+func NewServer(baseConfig *modules.BaseConfig, service *oauth.Service) *Server {
 	return &Server{
-		proxyHandler: handlers.NewProxyHandler(backendUrl, frontendUrl, backendHost, frontendHost),
+		proxyHandler: handlers.NewProxyHandler(baseConfig),
+		oauthHandler: handlers.NewOAuthHandler(service),
 	}
 }
 
-func (s *Server) Start(addr string) error {
+func (s *Server) Start(port int) error {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/", s.proxyHandler.Handler)
 	mux.HandleFunc("/oauth/begin/", s.oauthHandler.Begin)
 	mux.HandleFunc("/oauth/complete/", s.oauthHandler.Complete)
-	err := http.ListenAndServe(addr, mux)
+	err := http.ListenAndServe(fmt.Sprintf(":%d", port), mux)
 	if err != nil {
 		return fmt.Errorf("server.Start: %v", err)
 	}
 	return nil
 }
 
-func (proxy *Server) Stop() {}
+//func (proxy *Server) Stop() {} -> gracefull shutdown TBA

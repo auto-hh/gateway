@@ -1,3 +1,3 @@
 package utils
 
-const CookieKeyUserId = "user_id"
+const CookieKeySessionId = "session_id"

@@ -15,14 +15,14 @@ import (
 
 type Service struct {
 	repo          repository.Repository
-	hhConfig      modules.HHConfig
-	timeoutConfig modules.TimeoutConfig
+	hhConfig      *modules.HHConfig
+	timeoutConfig *modules.TimeoutConfig
 }
 
-func NewService(repo repository.Repository, hhconfig modules.HHConfig, timeoutConfig modules.TimeoutConfig) *Service {
+func NewService(repo repository.Repository, hhConfig *modules.HHConfig, timeoutConfig *modules.TimeoutConfig) *Service {
 	return &Service{
 		repo:          repo,
-		hhConfig:      hhconfig,
+		hhConfig:      hhConfig,
 		timeoutConfig: timeoutConfig,
 	}
 }

@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -20,7 +19,7 @@ type OAuthHandler struct {
 	client  *http.Client
 }
 
-func NewOAuthHandler(ctx context.Context, Service *oauth.Service) *OAuthHandler {
+func NewOAuthHandler(Service *oauth.Service) *OAuthHandler {
 	client := &http.Client{}
 	return &OAuthHandler{
 		service: Service,

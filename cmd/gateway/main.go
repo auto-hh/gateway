@@ -1,12 +1,26 @@
 package main
 
+import (
+	"context"
+	"gateway/config"
+	"gateway/internal/repository/redis"
+	"gateway/internal/server"
+	"gateway/internal/service/oauth"
+	"log"
+)
+
 func main() {
-	//TODO: инициализировать объект конфига
 
-	//TODO: инициализировать логгер(slog)
+	cfg := config.NewConfig()
+	ctx := context.Background()
+	repo := redis.NewRepo(ctx, cfg.GetRepoConfig())
 
-	//TODO: инициализировать пул соединений(pgxpool)
+	service := oauth.NewService(repo, cfg.GetHHConfig(), cfg.GetTimeoutConfig())
+	srv := server.NewServer(cfg.GetBaseConfig(), service)
 
-	//TODO: инициализировать App
+	err := srv.Start(cfg.GetBaseConfig().GetServerPort())
+	if err != nil {
+		log.Fatalf("server.Start failed: %v", err)
+	}
 
 }

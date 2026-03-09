@@ -3,33 +3,34 @@ package config
 import "gateway/config/modules"
 
 type Config struct {
-	modules.BaseConfig
-	modules.TimeoutConfig
-	modules.HHConfig
-	modules.RepoConfig
+	base    *modules.BaseConfig
+	timeout *modules.TimeoutConfig
+	hh      *modules.HHConfig
+	repo    *modules.RepoConfig
 }
 
 func NewConfig() *Config {
+
 	return &Config{
-		BaseConfig:    *modules.NewBaseConfig(),
-		TimeoutConfig: *modules.NewTimeoutConfig(),
-		HHConfig:      *modules.NewHHConfig(),
-		RepoConfig:    *modules.NewRepoConfig(),
+		base:    modules.NewBaseConfig(),
+		timeout: modules.NewTimeoutConfig(),
+		hh:      modules.NewHHConfig(),
+		repo:    modules.NewRepoConfig(),
 	}
 }
 
-func (c *Config) GetBaseConfig() modules.BaseConfig {
-	return c.BaseConfig
+func (c *Config) GetBaseConfig() *modules.BaseConfig {
+	return c.base
 }
 
-func (c *Config) GetTimeoutConfig() modules.TimeoutConfig {
-	return c.TimeoutConfig
+func (c *Config) GetTimeoutConfig() *modules.TimeoutConfig {
+	return c.timeout
 }
 
-func (c *Config) GetRepoConfig() modules.RepoConfig {
-	return c.RepoConfig
+func (c *Config) GetRepoConfig() *modules.RepoConfig {
+	return c.repo
 }
 
-func (c *Config) GetHHConfig() modules.HHConfig {
-	return c.HHConfig
+func (c *Config) GetHHConfig() *modules.HHConfig {
+	return c.hh
 }

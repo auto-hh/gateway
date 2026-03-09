@@ -3,11 +3,11 @@ package handlers
 import (
 	"errors"
 	"fmt"
+	"gateway/config/modules"
 	"gateway/internal/utils"
 	"log/slog"
 	"net/http"
 	"net/http/httputil"
-	"net/url"
 )
 
 type ProxyHandler struct {
@@ -17,18 +17,18 @@ type ProxyHandler struct {
 	frontendProxy *httputil.ReverseProxy
 }
 
-func NewProxyHandler(backendUrl, frontendUrl *url.URL, backendHost, frontendHost string) *ProxyHandler {
+func NewProxyHandler(baseConfig *modules.BaseConfig) *ProxyHandler {
 	return &ProxyHandler{
-		backendHost:   backendHost,
-		frontendHost:  frontendHost,
-		backendProxy:  httputil.NewSingleHostReverseProxy(backendUrl),
-		frontendProxy: httputil.NewSingleHostReverseProxy(frontendUrl),
+		backendHost:   baseConfig.GetBackendHost(),
+		frontendHost:  baseConfig.GetFrontendHost(),
+		backendProxy:  httputil.NewSingleHostReverseProxy(baseConfig.GetBackendUrl()),
+		frontendProxy: httputil.NewSingleHostReverseProxy(baseConfig.GetFrontendUrl()),
 	}
 }
 
 func (ph *ProxyHandler) Handler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("handlers.ProxyHandler.Handler is ready to work")
-	userId, err := r.Cookie(utils.CookieKeyUserId)
+	sessionId, err := r.Cookie(utils.CookieKeySessionId)
 
 	if errors.Is(err, http.ErrNoCookie) { //проверка на наличие в куках
 		slog.Info(fmt.Sprintf("handlers.ProxyHandler: Redirecting to authorization, %v", err))
@@ -39,7 +39,7 @@ func (ph *ProxyHandler) Handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	target := r.URL.Host
-	slog.Info(fmt.Sprintf("handlers.ProxyHandler.Handler: user with id %s exists, wants to see %s", userId, target))
+	slog.Info(fmt.Sprintf("handlers.ProxyHandler.Handler: user with id %s exists, wants to see %s", sessionId, target))
 
 	if target == ph.frontendHost {
 		slog.Info(fmt.Sprintf("handlers.ProxyHandler.Handler: succesfully redirecting to frontend"))
