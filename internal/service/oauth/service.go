@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"gateway/config"
 	"gateway/internal/repository"
+	"net/http"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -55,6 +57,47 @@ func (s *Service) BuildCodeRequest(ctx context.Context, sessionId string) (*url.
 	return redirectUrl, nil
 }
 
+func (s *Service) BuildTokenRequest(r *http.Request, sessionId string, code string) (*http.Request, error) {
+	stateFromRepo, err := s.repo.Get(r.Context(), fmt.Sprintf("state_%s", sessionId))
+	if err != nil {
+		return &http.Request{}, err
+	}
+
+	stateFromQuery := r.URL.Query().Get("state")
+	if stateFromQuery == "" || stateFromRepo == "" || stateFromQuery != stateFromRepo {
+		return &http.Request{}, fmt.Errorf("service.BuildTokenRequest: invalid state")
+	}
+
+	params := url.Values{}
+	params.Set("client_id", s.hhConfig.GetClientId())
+	params.Set("client_secret", s.hhConfig.GetClientSecret())
+	params.Set("code", code)
+	params.Set("grant_type", "authorization_code")
+	params.Set("redirect_uri", "/")
+
+	request, err := http.NewRequestWithContext(
+		r.Context(),
+		http.MethodPost,
+		"https://hh.ru/oauth/token",
+		strings.NewReader(params.Encode()),
+	)
+	request.Header.Set("User-Agent", fmt.Sprintf("%s/%s (%s)", s.hhConfig.GetAppName(), s.hhConfig.GetAppVersion(), s.hhConfig.GetDevContact()))
+
+	return request, nil
+}
+
+func (s *Service) SetTokens(ctx context.Context, sessionId, accessToken, refreshToken string, expiresIn time.Duration) error {
+	err := s.repo.Set(ctx, fmt.Sprintf("access_token_%s", sessionId), accessToken, expiresIn)
+	if err != nil {
+		return fmt.Errorf("service.SetTokens: %w", err)
+	}
+
+	err = s.repo.Set(ctx, fmt.Sprintf("refresh_token_%s", sessionId), refreshToken, expiresIn)
+	if err != nil {
+		return fmt.Errorf("service.SetTokens: %w", err)
+	}
+	return nil
+}
 func generateState() (string, error) {
 	bytes := make([]byte, 32)
 
