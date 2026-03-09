@@ -3,6 +3,7 @@ package redis
 import (
 	"context"
 	"fmt"
+	"gateway/config"
 	"log"
 	"time"
 
@@ -13,8 +14,9 @@ type Repo struct {
 	client *redis.Client
 }
 
-func NewRepo(ctx context.Context, addr string, dbName int, username, password string, maxRetries int, dialTimeout, readTimeout, writeTimeout time.Duration) *Repo {
-	client, err := NewClient(ctx, addr, dbName, username, password, maxRetries, dialTimeout, readTimeout, writeTimeout)
+func NewRepo(ctx context.Context, repoConfig config.RepoConfig) *Repo {
+
+	client, err := NewClient(ctx, repoConfig)
 	if err != nil {
 		log.Fatal(fmt.Sprintf("redis.NewRepo: %v", err))
 	}
@@ -26,24 +28,17 @@ func NewRepo(ctx context.Context, addr string, dbName int, username, password st
 
 func NewClient(
 	ctx context.Context,
-	addr string,
-	dbName int,
-	username,
-	password string,
-	maxRetries int,
-	dialTimeout,
-	readTimeout,
-	writeTimeout time.Duration,
+	repoConfig config.RepoConfig,
 ) (*redis.Client, error) {
 	db := redis.NewClient(&redis.Options{
-		Addr:         addr,
-		DB:           dbName,
-		Username:     username,
-		Password:     password,
-		MaxRetries:   maxRetries,
-		DialTimeout:  dialTimeout,
-		ReadTimeout:  readTimeout,
-		WriteTimeout: writeTimeout,
+		Addr:         repoConfig.GetAddr(),
+		DB:           repoConfig.GetDbName(),
+		Username:     repoConfig.GetUser(),
+		Password:     repoConfig.GetPassword(),
+		MaxRetries:   repoConfig.GetMaxRetries(),
+		DialTimeout:  repoConfig.GetDialTimeout(),
+		ReadTimeout:  repoConfig.GetReadTimeout(),
+		WriteTimeout: repoConfig.GetWriteTimeout(),
 	})
 
 	if err := db.Ping(ctx).Err(); err != nil {
