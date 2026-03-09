@@ -10,8 +10,8 @@ const (
 	SessionIdExpirationTime config.ConfigKey = "SESSION_ID_EXPIRATION_TIME"
 	StateExpirationTime     config.ConfigKey = "STATE_EXPIRATION_TIME"
 
-	DefaultSessionIdTimeout int = 20
-	DefaultStateTimeout     int = 20
+	DefaultSessionIdTimeout int = 24
+	DefaultStateTimeout     int = 24
 )
 
 type TimeoutConfig struct {
@@ -32,7 +32,7 @@ func NewTimeoutConfig() *TimeoutConfig {
 	}
 	stateExpirationTimeInt, err := strconv.Atoi(StateExpirationTime.Get(strconv.Itoa(DefaultStateTimeout)))
 	if err != nil {
-		stateExpirationTime = time.Duration(DefaultStateTimeout) * time.Minute
+		stateExpirationTime = time.Duration(DefaultStateTimeout) * time.Hour
 	} else {
 		sessionIdExpirationTime = time.Duration(stateExpirationTimeInt) * time.Minute
 	}
