@@ -44,14 +44,14 @@ const (
 	DefaultAppVersion string = "1.0.0"
 )
 
-type baseConfig struct {
+type BaseConfig struct {
 	backendUrl   *url.URL
 	frontendUrl  *url.URL
 	backendHost  string
 	frontendHost string
 }
 
-type repoConfig struct {
+type RepoConfig struct {
 	user         string
 	password     string
 	addr         string
@@ -61,12 +61,12 @@ type repoConfig struct {
 	writeTimeout time.Duration
 }
 
-type timeoutConfig struct {
+type TimeoutConfig struct {
 	sessionIdExpirationTime time.Duration
 	stateExpirationTime     time.Duration
 }
 
-type hhConfig struct {
+type HHConfig struct {
 	clientId     string
 	clientSecret string
 	appName      string
@@ -76,13 +76,13 @@ type hhConfig struct {
 	rawUrl       string
 }
 type Config struct {
-	baseConfig
-	timeoutConfig
-	hhConfig
-	repoConfig
+	BaseConfig
+	TimeoutConfig
+	HHConfig
+	RepoConfig
 }
 
-func NewBaseConfig() *baseConfig {
+func NewBaseConfig() *BaseConfig {
 	backendUrl, err := url.Parse(BackendUrl.MustGet())
 	if err != nil {
 		panic(fmt.Sprintf("config.NewConfig: failed to parse BACKEND_URL: %v", err))
@@ -97,7 +97,7 @@ func NewBaseConfig() *baseConfig {
 
 	frontendHost := FrontendUrl.MustGet()
 
-	return &baseConfig{
+	return &BaseConfig{
 		backendUrl:   backendUrl,
 		frontendUrl:  frontendUrl,
 		backendHost:  backendHost,
@@ -105,7 +105,7 @@ func NewBaseConfig() *baseConfig {
 	}
 }
 
-func NewRepoConfig() *repoConfig {
+func NewRepoConfig() *RepoConfig {
 	user := RepoUser.MustGet()
 
 	password := RepoPassword.MustGet()
@@ -131,7 +131,7 @@ func NewRepoConfig() *repoConfig {
 	if err != nil {
 		writeTimeout = DefaultWriteTimeout
 	}
-	return &repoConfig{
+	return &RepoConfig{
 		user:         user,
 		password:     password,
 		addr:         addr,
@@ -142,7 +142,7 @@ func NewRepoConfig() *repoConfig {
 	}
 }
 
-func NewTimeoutConfig() *timeoutConfig {
+func NewTimeoutConfig() *TimeoutConfig {
 
 	var sessionIdExpirationTime time.Duration
 	var stateExpirationTime time.Duration
@@ -159,13 +159,13 @@ func NewTimeoutConfig() *timeoutConfig {
 	} else {
 		sessionIdExpirationTime = time.Duration(stateExpirationTimeInt) * time.Minute
 	}
-	return &timeoutConfig{
+	return &TimeoutConfig{
 		sessionIdExpirationTime: sessionIdExpirationTime,
 		stateExpirationTime:     stateExpirationTime,
 	}
 }
 
-func NewHHConfig() *hhConfig {
+func NewHHConfig() *HHConfig {
 	clientId := HHClientId.MustGet()
 	clientSecret := HHClientSecret.MustGet()
 	redirectUri := HHRedirectUri.MustGet()
@@ -174,7 +174,7 @@ func NewHHConfig() *hhConfig {
 	appName := HHAppName.Get(DefaultAppName)
 	appVersion := HHAppVersion.Get(DefaultAppVersion)
 
-	return &hhConfig{
+	return &HHConfig{
 		clientId:     clientId,
 		clientSecret: clientSecret,
 		appName:      appName,
@@ -188,104 +188,104 @@ func NewHHConfig() *hhConfig {
 func NewConfig() *Config {
 
 	return &Config{
-		baseConfig:    *NewBaseConfig(),
-		timeoutConfig: *NewTimeoutConfig(),
-		repoConfig:    *NewRepoConfig(),
-		hhConfig:      *NewHHConfig(),
+		BaseConfig:    *NewBaseConfig(),
+		TimeoutConfig: *NewTimeoutConfig(),
+		RepoConfig:    *NewRepoConfig(),
+		HHConfig:      *NewHHConfig(),
 	}
 }
 
-func (c *Config) GetBaseConfig() baseConfig {
-	return c.baseConfig
+func (c *Config) GetBaseConfig() BaseConfig {
+	return c.BaseConfig
 }
 
-func (c *Config) GetTimeoutConfig() timeoutConfig {
-	return c.timeoutConfig
+func (c *Config) GetTimeoutConfig() TimeoutConfig {
+	return c.TimeoutConfig
 }
 
-func (c *Config) GetRepoConfig() repoConfig {
-	return c.repoConfig
+func (c *Config) GetRepoConfig() RepoConfig {
+	return c.RepoConfig
 }
 
-func (c *Config) GetHHConfig() hhConfig {
-	return c.hhConfig
+func (c *Config) GetHHConfig() HHConfig {
+	return c.HHConfig
 }
 
-func (baseConfig *baseConfig) GetBackendUrl() *url.URL {
+func (baseConfig *BaseConfig) GetBackendUrl() *url.URL {
 	return baseConfig.backendUrl
 }
 
-func (baseConfig *baseConfig) GetFrontendUrl() *url.URL {
+func (baseConfig *BaseConfig) GetFrontendUrl() *url.URL {
 	return baseConfig.frontendUrl
 }
 
-func (baseConfig *baseConfig) GetBackendHost() string {
+func (baseConfig *BaseConfig) GetBackendHost() string {
 	return baseConfig.backendHost
 }
 
-func (baseConfig *baseConfig) GetFrontendHost() string {
+func (baseConfig *BaseConfig) GetFrontendHost() string {
 	return baseConfig.frontendHost
 }
 
-func (repoConfig *repoConfig) GetUser() string {
+func (repoConfig *RepoConfig) GetUser() string {
 	return repoConfig.user
 }
 
-func (repoConfig *repoConfig) GetPassword() string {
+func (repoConfig *RepoConfig) GetPassword() string {
 	return repoConfig.password
 }
 
-func (repoConfig *repoConfig) GetAddr() string {
+func (repoConfig *RepoConfig) GetAddr() string {
 	return repoConfig.addr
 }
 
-func (repoConfig *repoConfig) GetMaxRetries() int {
+func (repoConfig *RepoConfig) GetMaxRetries() int {
 	return repoConfig.maxRetries
 }
 
-func (repoConfig *repoConfig) GetDialTimeout() time.Duration {
+func (repoConfig *RepoConfig) GetDialTimeout() time.Duration {
 	return repoConfig.dialTimeout
 }
 
-func (repoConfig *repoConfig) GetReadTimeout() time.Duration {
+func (repoConfig *RepoConfig) GetReadTimeout() time.Duration {
 	return repoConfig.readTimeout
 }
 
-func (repoConfig *repoConfig) GetWriteTimeout() time.Duration {
+func (repoConfig *RepoConfig) GetWriteTimeout() time.Duration {
 	return repoConfig.writeTimeout
 }
 
-func (timeoutConfig *timeoutConfig) GetSessionIdExpirationTime() time.Duration {
+func (timeoutConfig *TimeoutConfig) GetSessionIdExpirationTime() time.Duration {
 	return timeoutConfig.sessionIdExpirationTime
 }
 
-func (timeoutConfig *timeoutConfig) GetStateExpirationTime() time.Duration {
+func (timeoutConfig *TimeoutConfig) GetStateExpirationTime() time.Duration {
 	return timeoutConfig.stateExpirationTime
 }
 
-func (hhConfig *hhConfig) GetAppName() string {
+func (hhConfig *HHConfig) GetAppName() string {
 	return hhConfig.appName
 }
 
-func (hhConfig *hhConfig) GetAppVersion() string {
+func (hhConfig *HHConfig) GetAppVersion() string {
 	return hhConfig.appVersion
 }
-func (hhConfig *hhConfig) GetRedirectUri() string {
+func (hhConfig *HHConfig) GetRedirectUri() string {
 	return hhConfig.redirectUri
 }
 
-func (hhConfig *hhConfig) GetDevContact() string {
+func (hhConfig *HHConfig) GetDevContact() string {
 	return hhConfig.devContact
 }
 
-func (hhConfig *hhConfig) GetRawUrl() string {
+func (hhConfig *HHConfig) GetRawUrl() string {
 	return hhConfig.rawUrl
 }
 
-func (hhConfig *hhConfig) GetClientId() string {
+func (hhConfig *HHConfig) GetClientId() string {
 	return hhConfig.clientId
 }
 
-func (hhConfig *hhConfig) GetClientSecret() string {
+func (hhConfig *HHConfig) GetClientSecret() string {
 	return hhConfig.clientSecret
 }
