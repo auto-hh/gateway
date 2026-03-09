@@ -97,7 +97,7 @@ func (o *OAuthHandler) Complete(w http.ResponseWriter, r *http.Request) {
 
 	code := r.URL.Query().Get("code")
 
-	request, err := o.service.BuildTokenRequest(r, sessionId, code)
+	request, err := o.service.BuildTokenRequest(r.Context(), sessionId, r.URL.Query().Get("state"), code)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

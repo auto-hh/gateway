@@ -57,13 +57,12 @@ func (s *Service) BuildCodeRequest(ctx context.Context, sessionId string) (*url.
 	return redirectUrl, nil
 }
 
-func (s *Service) BuildTokenRequest(r *http.Request, sessionId string, code string) (*http.Request, error) {
-	stateFromRepo, err := s.repo.Get(r.Context(), fmt.Sprintf("state_%s", sessionId))
+func (s *Service) BuildTokenRequest(ctx context.Context, sessionId string, stateFromQuery, code string) (*http.Request, error) {
+	stateFromRepo, err := s.repo.Get(ctx, fmt.Sprintf("state_%s", sessionId))
 	if err != nil {
 		return &http.Request{}, err
 	}
 
-	stateFromQuery := r.URL.Query().Get("state")
 	if stateFromQuery == "" || stateFromRepo == "" || stateFromQuery != stateFromRepo {
 		return &http.Request{}, fmt.Errorf("service.BuildTokenRequest: invalid state")
 	}
@@ -76,7 +75,7 @@ func (s *Service) BuildTokenRequest(r *http.Request, sessionId string, code stri
 	params.Set("redirect_uri", "/")
 
 	request, err := http.NewRequestWithContext(
-		r.Context(),
+		ctx,
 		http.MethodPost,
 		"https://hh.ru/oauth/token",
 		strings.NewReader(params.Encode()),
