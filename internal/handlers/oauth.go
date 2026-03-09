@@ -2,15 +2,12 @@ package handlers
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"gateway/internal/service/oauth"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/gofrs/uuid/v5"
@@ -98,34 +95,14 @@ func (o *OAuthHandler) Complete(w http.ResponseWriter, r *http.Request) {
 		sessionId = sessionIdCookie.Value
 	}
 
-	stateFromRepo, err := o.repo.Get(r.Context(), fmt.Sprintf("state_%s", sessionId))
+	code := r.URL.Query().Get("code")
+
+	request, err := o.service.BuildTokenRequest(r, sessionId, code)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	stateFromQuery := r.URL.Query().Get("state")
-	if stateFromQuery == "" || stateFromRepo == "" || stateFromQuery != stateFromRepo {
-		http.Error(w, "oauth.Complete: invalid sessionId", http.StatusUnauthorized)
-		return
-	}
-
-	code := r.URL.Query().Get("code")
-
-	params := url.Values{}
-	params.Set("client_id", o.service.GetClientId())
-	params.Set("client_secret", o.service.GetClientSecret())
-	params.Set("code", code)
-	params.Set("grant_type", "authorization_code")
-	params.Set("redirect_uri", "/")
-
-	request, err := http.NewRequestWithContext(
-		o.ctx,
-		http.MethodPost,
-		"https://hh.ru/oauth/token",
-		strings.NewReader(params.Encode()),
-	)
-	request.Header.Set("User-Agent", fmt.Sprintf("%s/%s (%s)", o.service.GetName(), o.service.GetVersion(), o.service.GetDevContact()))
 	response, err := o.client.Do(request)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -156,21 +133,18 @@ func (o *OAuthHandler) Complete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessToken := results.AccessToken
-	refreshToken := results.RefreshToken
-	expiresIn := results.ExpiresIn
-
-	err = o.repo.Set(o.ctx, fmt.Sprintf("access_token_%s", sessionId), accessToken, time.Second*time.Duration(expiresIn))
+	err = o.service.SetTokens(
+		request.Context(),
+		sessionId,
+		results.AccessToken,
+		results.RefreshToken,
+		time.Duration(results.ExpiresIn)*time.Second,
+	)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	err = o.repo.Set(o.ctx, fmt.Sprintf("refresh_token_%s", sessionId), refreshToken, 9999999999999999)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
 	http.SetCookie(w, &http.Cookie{
 		Name:     "authorized",
 		Value:    "true",
@@ -182,18 +156,6 @@ func (o *OAuthHandler) Complete(w http.ResponseWriter, r *http.Request) {
 	})
 
 	http.Redirect(w, r, "/", http.StatusFound)
-}
-
-// Функции генерации sessionId и state
-func generateState() (string, error) {
-	bytes := make([]byte, 32)
-
-	_, err := rand.Read(bytes)
-	if err != nil {
-		return "", fmt.Errorf("oauth.generateState: %w", err)
-	}
-
-	return hex.EncodeToString(bytes), nil
 }
 
 func generateSessionId() (string, error) {

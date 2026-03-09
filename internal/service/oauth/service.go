@@ -5,34 +5,25 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"gateway/config"
 	"gateway/internal/repository"
+	"net/http"
 	"net/url"
+	"strings"
 	"time"
 )
 
 type Service struct {
-	repo                repository.Repository
-	clientId            string
-	redirectUri         string
-	rawUrl              string
-	clientSecret        string
-	name                string
-	version             string
-	devContact          string
-	StateExpirationTime time.Duration
+	repo          repository.Repository
+	hhConfig      config.HHConfig
+	timeoutConfig config.TimeoutConfig
 }
 
-func NewService(repo repository.Repository, clientId, clientSecret, rawUrl, name, version, devContact, redirectUri string, stateExpirationTime time.Duration) *Service {
+func NewService(repo repository.Repository, hhconfig config.HHConfig, timeoutConfig config.TimeoutConfig) *Service {
 	return &Service{
-		repo:                repo,
-		clientId:            clientId,
-		clientSecret:        clientSecret,
-		redirectUri:         redirectUri,
-		rawUrl:              rawUrl,
-		name:                name,
-		version:             version,
-		devContact:          devContact,
-		StateExpirationTime: stateExpirationTime,
+		repo:          repo,
+		hhConfig:      hhconfig,
+		timeoutConfig: timeoutConfig,
 	}
 }
 
@@ -47,25 +38,66 @@ func (s *Service) BuildCodeRequest(ctx context.Context, sessionId string) (*url.
 		return nil, err
 	}
 
-	if err = s.repo.Set(ctx, fmt.Sprintf("state_%s", sessionId), state, s.StateExpirationTime); err != nil {
+	if err = s.repo.Set(ctx, fmt.Sprintf("state_%s", sessionId), state, s.timeoutConfig.GetStateExpirationTime()); err != nil {
 		return nil, err
 	}
 
-	redirectUrl, err := url.Parse(s.rawUrl)
+	redirectUrl, err := url.Parse(s.hhConfig.GetRawUrl())
 	if err != nil {
 		return nil, fmt.Errorf("oauth.BuildRequest: %w", err)
 	}
 
 	params := redirectUrl.Query()
 	params.Set("response_type", "code")
-	params.Set("client_id", s.clientId)
-	params.Set("redirect_uri", s.redirectUri)
+	params.Set("client_id", s.hhConfig.GetClientId())
+	params.Set("redirect_uri", s.hhConfig.GetRedirectUri())
 	params.Set("state", state)
 	redirectUrl.RawQuery = params.Encode()
 
 	return redirectUrl, nil
 }
 
+func (s *Service) BuildTokenRequest(r *http.Request, sessionId string, code string) (*http.Request, error) {
+	stateFromRepo, err := s.repo.Get(r.Context(), fmt.Sprintf("state_%s", sessionId))
+	if err != nil {
+		return &http.Request{}, err
+	}
+
+	stateFromQuery := r.URL.Query().Get("state")
+	if stateFromQuery == "" || stateFromRepo == "" || stateFromQuery != stateFromRepo {
+		return &http.Request{}, fmt.Errorf("service.BuildTokenRequest: invalid state")
+	}
+
+	params := url.Values{}
+	params.Set("client_id", s.hhConfig.GetClientId())
+	params.Set("client_secret", s.hhConfig.GetClientSecret())
+	params.Set("code", code)
+	params.Set("grant_type", "authorization_code")
+	params.Set("redirect_uri", "/")
+
+	request, err := http.NewRequestWithContext(
+		r.Context(),
+		http.MethodPost,
+		"https://hh.ru/oauth/token",
+		strings.NewReader(params.Encode()),
+	)
+	request.Header.Set("User-Agent", fmt.Sprintf("%s/%s (%s)", s.hhConfig.GetAppName(), s.hhConfig.GetAppVersion(), s.hhConfig.GetDevContact()))
+
+	return request, nil
+}
+
+func (s *Service) SetTokens(ctx context.Context, sessionId, accessToken, refreshToken string, expiresIn time.Duration) error {
+	err := s.repo.Set(ctx, fmt.Sprintf("access_token_%s", sessionId), accessToken, expiresIn)
+	if err != nil {
+		return fmt.Errorf("service.SetTokens: %w", err)
+	}
+
+	err = s.repo.Set(ctx, fmt.Sprintf("refresh_token_%s", sessionId), refreshToken, expiresIn)
+	if err != nil {
+		return fmt.Errorf("service.SetTokens: %w", err)
+	}
+	return nil
+}
 func generateState() (string, error) {
 	bytes := make([]byte, 32)
 
