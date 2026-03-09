@@ -5,7 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"gateway/config"
+	"gateway/config/modules"
 	"gateway/internal/repository"
 	"net/http"
 	"net/url"
@@ -15,11 +15,11 @@ import (
 
 type Service struct {
 	repo          repository.Repository
-	hhConfig      config.HHConfig
-	timeoutConfig config.TimeoutConfig
+	hhConfig      modules.HHConfig
+	timeoutConfig modules.TimeoutConfig
 }
 
-func NewService(repo repository.Repository, hhconfig config.HHConfig, timeoutConfig config.TimeoutConfig) *Service {
+func NewService(repo repository.Repository, hhconfig modules.HHConfig, timeoutConfig modules.TimeoutConfig) *Service {
 	return &Service{
 		repo:          repo,
 		hhConfig:      hhconfig,

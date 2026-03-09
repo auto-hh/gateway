@@ -3,7 +3,7 @@ package redis
 import (
 	"context"
 	"fmt"
-	"gateway/config"
+	"gateway/config/modules"
 	"log"
 	"time"
 
@@ -14,7 +14,7 @@ type Repo struct {
 	client *redis.Client
 }
 
-func NewRepo(ctx context.Context, repoConfig config.RepoConfig) *Repo {
+func NewRepo(ctx context.Context, repoConfig modules.RepoConfig) *Repo {
 
 	client, err := NewClient(ctx, repoConfig)
 	if err != nil {
@@ -28,7 +28,7 @@ func NewRepo(ctx context.Context, repoConfig config.RepoConfig) *Repo {
 
 func NewClient(
 	ctx context.Context,
-	repoConfig config.RepoConfig,
+	repoConfig modules.RepoConfig,
 ) (*redis.Client, error) {
 	db := redis.NewClient(&redis.Options{
 		Addr:         repoConfig.GetAddr(),
