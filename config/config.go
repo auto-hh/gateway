@@ -9,8 +9,9 @@ import (
 )
 
 const (
-	BackendUrl       config.ConfigKey = "BACKEND_URL"
-	FrontendUrl      config.ConfigKey = "FRONTEND_URL"
+	BackendUrl  config.ConfigKey = "BACKEND_URL"
+	FrontendUrl config.ConfigKey = "FRONTEND_URL"
+
 	RepoUser         config.ConfigKey = "REPO_USER"
 	RepoPassword     config.ConfigKey = "REPO_PASSWORD"
 	RepoAddr         config.ConfigKey = "REPO_ADDR"
@@ -19,27 +20,69 @@ const (
 	RepoReadTimeout  config.ConfigKey = "REPO_READ_TIMEOUT"
 	RepoWriteTimeout config.ConfigKey = "REPO_WRITE_TIMEOUT"
 
+	HHClientId     config.ConfigKey = "CLIENT_ID"
+	HHClientSecret config.ConfigKey = "CLIENT_SECRET"
+	HHAppName      config.ConfigKey = "APP_NAME"
+	HHAppVersion   config.ConfigKey = "APP_VERSION"
+	HHRedirectUri  config.ConfigKey = "REDIRECT_URI"
+	HHDevContact   config.ConfigKey = "DEV_CONTACT"
+	HHRawUrl       config.ConfigKey = "RAW_URL"
+
+	SessionIdExpirationTime config.ConfigKey = "SESSION_ID_EXPIRATION_TIME"
+	StateExpirationTime     config.ConfigKey = "STATE_EXPIRATION_TIME"
+
 	DefaultMaxRetries   int = 3
 	DefaultDialTimeout  int = 20
 	DefaultReadTimeout  int = 20
 	DefaultWriteTimeout int = 20
+
+	DefaultSessionIdTimeout int = 20
+	DefaultStateTimeout     int = 20
+
+	DefaultAppName    string = "MyAPP"
+	DefaultDevContact string = "dev@mail.ru"
+	DefaultAppVersion string = "1.0.0"
 )
 
-type Config struct {
-	backendUrl       *url.URL
-	frontendUrl      *url.URL
-	backendHost      string
-	frontendHost     string
-	repoUser         string
-	repoPassword     string
-	repoAddr         string
-	repoMaxRetries   int
-	repoDialTimeout  time.Duration
-	repoReadTimeout  time.Duration
-	repoWriteTimeout time.Duration
+type baseConfig struct {
+	backendUrl   *url.URL
+	frontendUrl  *url.URL
+	backendHost  string
+	frontendHost string
 }
 
-func NewConfig() *Config {
+type repoConfig struct {
+	user         string
+	password     string
+	addr         string
+	maxRetries   int
+	dialTimeout  time.Duration
+	readTimeout  time.Duration
+	writeTimeout time.Duration
+}
+
+type timeoutConfig struct {
+	sessionIdExpirationTime time.Duration
+	stateExpirationTime     time.Duration
+}
+
+type hhConfig struct {
+	clientId     string
+	clientSecret string
+	appName      string
+	appVersion   string
+	redirectUri  string
+	devContact   string
+	rawUrl       string
+}
+type Config struct {
+	baseConfig
+	timeoutConfig
+	hhConfig
+	repoConfig
+}
+
+func NewBaseConfig() *baseConfig {
 	backendUrl, err := url.Parse(BackendUrl.MustGet())
 	if err != nil {
 		panic(fmt.Sprintf("config.NewConfig: failed to parse BACKEND_URL: %v", err))
@@ -54,85 +97,195 @@ func NewConfig() *Config {
 
 	frontendHost := FrontendUrl.MustGet()
 
-	repoUser := RepoUser.MustGet()
+	return &baseConfig{
+		backendUrl:   backendUrl,
+		frontendUrl:  frontendUrl,
+		backendHost:  backendHost,
+		frontendHost: frontendHost,
+	}
+}
 
-	repoPassword := RepoPassword.MustGet()
+func NewRepoConfig() *repoConfig {
+	user := RepoUser.MustGet()
 
-	repoAddr := RepoAddr.MustGet()
+	password := RepoPassword.MustGet()
 
-	repoMaxRetries, err := strconv.Atoi(RepoMaxRetries.MustGet())
+	addr := RepoAddr.MustGet()
+
+	maxRetries, err := strconv.Atoi(RepoMaxRetries.MustGet())
 	if err != nil {
-		repoMaxRetries = DefaultMaxRetries
+		maxRetries = DefaultMaxRetries
 	}
 
-	repoDialTimeout, err := strconv.Atoi(RepoDialTimeout.MustGet())
+	dialTimeout, err := strconv.Atoi(RepoDialTimeout.MustGet())
 	if err != nil {
-		repoDialTimeout = DefaultDialTimeout
+		dialTimeout = DefaultDialTimeout
 	}
 
-	repoReadTimeout, err := strconv.Atoi(RepoReadTimeout.MustGet())
+	readTimeout, err := strconv.Atoi(RepoReadTimeout.MustGet())
 	if err != nil {
-		repoReadTimeout = DefaultReadTimeout
+		readTimeout = DefaultReadTimeout
 	}
 
-	repoWriteTimeout, err := strconv.Atoi(RepoWriteTimeout.MustGet())
+	writeTimeout, err := strconv.Atoi(RepoWriteTimeout.MustGet())
 	if err != nil {
-		repoWriteTimeout = DefaultWriteTimeout
+		writeTimeout = DefaultWriteTimeout
 	}
+	return &repoConfig{
+		user:         user,
+		password:     password,
+		addr:         addr,
+		maxRetries:   maxRetries,
+		dialTimeout:  time.Duration(dialTimeout) * time.Second,
+		readTimeout:  time.Duration(readTimeout) * time.Second,
+		writeTimeout: time.Duration(writeTimeout) * time.Second,
+	}
+}
+
+func NewTimeoutConfig() *timeoutConfig {
+
+	var sessionIdExpirationTime time.Duration
+	var stateExpirationTime time.Duration
+
+	sessionIdExpirationTimeInt, err := strconv.Atoi(SessionIdExpirationTime.Get(strconv.Itoa(DefaultSessionIdTimeout)))
+	if err != nil {
+		sessionIdExpirationTime = time.Duration(DefaultSessionIdTimeout) * time.Minute
+	} else {
+		sessionIdExpirationTime = time.Duration(sessionIdExpirationTimeInt) * time.Minute
+	}
+	stateExpirationTimeInt, err := strconv.Atoi(StateExpirationTime.Get(strconv.Itoa(DefaultStateTimeout)))
+	if err != nil {
+		stateExpirationTime = time.Duration(DefaultStateTimeout) * time.Minute
+	} else {
+		sessionIdExpirationTime = time.Duration(stateExpirationTimeInt) * time.Minute
+	}
+	return &timeoutConfig{
+		sessionIdExpirationTime: sessionIdExpirationTime,
+		stateExpirationTime:     stateExpirationTime,
+	}
+}
+
+func NewHHConfig() *hhConfig {
+	clientId := HHClientId.MustGet()
+	clientSecret := HHClientSecret.MustGet()
+	redirectUri := HHRedirectUri.MustGet()
+	devContact := HHDevContact.Get(DefaultDevContact)
+	rawUrl := HHRawUrl.MustGet()
+	appName := HHAppName.Get(DefaultAppName)
+	appVersion := HHAppVersion.Get(DefaultAppVersion)
+
+	return &hhConfig{
+		clientId:     clientId,
+		clientSecret: clientSecret,
+		appName:      appName,
+		appVersion:   appVersion,
+		redirectUri:  redirectUri,
+		devContact:   devContact,
+		rawUrl:       rawUrl,
+	}
+}
+
+func NewConfig() *Config {
 
 	return &Config{
-		backendUrl:       backendUrl,
-		frontendUrl:      frontendUrl,
-		backendHost:      backendHost,
-		frontendHost:     frontendHost,
-		repoUser:         repoUser,
-		repoPassword:     repoPassword,
-		repoAddr:         repoAddr,
-		repoMaxRetries:   repoMaxRetries,
-		repoDialTimeout:  time.Duration(repoDialTimeout) * time.Second,
-		repoReadTimeout:  time.Duration(repoReadTimeout) * time.Second,
-		repoWriteTimeout: time.Duration(repoWriteTimeout) * time.Second,
-		//TODO: hh блок
-		//TODO: таймауты
+		baseConfig:    *NewBaseConfig(),
+		timeoutConfig: *NewTimeoutConfig(),
+		repoConfig:    *NewRepoConfig(),
+		hhConfig:      *NewHHConfig(),
 	}
 }
 
-func (c *Config) BackendUrl() *url.URL {
-	return c.backendUrl
+func (c *Config) GetBaseConfig() baseConfig {
+	return c.baseConfig
 }
 
-func (c *Config) FrontendUrl() *url.URL {
-	return c.frontendUrl
+func (c *Config) GetTimeoutConfig() timeoutConfig {
+	return c.timeoutConfig
 }
 
-func (c *Config) FrontendHost() string {
-	return c.frontendHost
+func (c *Config) GetRepoConfig() repoConfig {
+	return c.repoConfig
 }
 
-func (c *Config) BackendHost() string {
-	return c.backendHost
+func (c *Config) GetHHConfig() hhConfig {
+	return c.hhConfig
 }
 
-func (c *Config) RepoUser() string {
-	return c.repoUser
+func (baseConfig *baseConfig) GetBackendUrl() *url.URL {
+	return baseConfig.backendUrl
 }
 
-func (c *Config) RepoPassword() string {
-	return c.repoPassword
+func (baseConfig *baseConfig) GetFrontendUrl() *url.URL {
+	return baseConfig.frontendUrl
 }
 
-func (c *Config) RepoMaxRetries() int {
-	return c.repoMaxRetries
+func (baseConfig *baseConfig) GetBackendHost() string {
+	return baseConfig.backendHost
 }
 
-func (c *Config) RepoDialTimeout() time.Duration {
-	return c.repoDialTimeout
+func (baseConfig *baseConfig) GetFrontendHost() string {
+	return baseConfig.frontendHost
 }
 
-func (c *Config) RepoReadTimeout() time.Duration {
-	return c.repoReadTimeout
+func (repoConfig *repoConfig) GetUser() string {
+	return repoConfig.user
 }
 
-func (c *Config) RepoWriteTimeout() time.Duration {
-	return c.repoWriteTimeout
+func (repoConfig *repoConfig) GetPassword() string {
+	return repoConfig.password
+}
+
+func (repoConfig *repoConfig) GetAddr() string {
+	return repoConfig.addr
+}
+
+func (repoConfig *repoConfig) GetMaxRetries() int {
+	return repoConfig.maxRetries
+}
+
+func (repoConfig *repoConfig) GetDialTimeout() time.Duration {
+	return repoConfig.dialTimeout
+}
+
+func (repoConfig *repoConfig) GetReadTimeout() time.Duration {
+	return repoConfig.readTimeout
+}
+
+func (repoConfig *repoConfig) GetWriteTimeout() time.Duration {
+	return repoConfig.writeTimeout
+}
+
+func (timeoutConfig *timeoutConfig) GetSessionIdExpirationTime() time.Duration {
+	return timeoutConfig.sessionIdExpirationTime
+}
+
+func (timeoutConfig *timeoutConfig) GetStateExpirationTime() time.Duration {
+	return timeoutConfig.stateExpirationTime
+}
+
+func (hhConfig *hhConfig) GetAppName() string {
+	return hhConfig.appName
+}
+
+func (hhConfig *hhConfig) GetAppVersion() string {
+	return hhConfig.appVersion
+}
+func (hhConfig *hhConfig) GetRedirectUri() string {
+	return hhConfig.redirectUri
+}
+
+func (hhConfig *hhConfig) GetDevContact() string {
+	return hhConfig.devContact
+}
+
+func (hhConfig *hhConfig) GetRawUrl() string {
+	return hhConfig.rawUrl
+}
+
+func (hhConfig *hhConfig) GetClientId() string {
+	return hhConfig.clientId
+}
+
+func (hhConfig *hhConfig) GetClientSecret() string {
+	return hhConfig.clientSecret
 }
