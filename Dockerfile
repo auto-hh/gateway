@@ -22,4 +22,4 @@ RUN apk --no-cache add ca-certificates tzdata
 
 COPY --from=builder /gateway/build/gateway ./
 
-CMD ["sh", "-c", "./server"]
+CMD ["sh", "-c", "./gateway"]
