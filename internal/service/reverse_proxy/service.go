@@ -22,11 +22,11 @@ const (
 )
 
 type Service struct {
-	repo     redis.Repo
-	hhConfig modules.HHConfig
+	repo     *redis.Repo
+	hhConfig *modules.HHConfig
 }
 
-func NewService(repo redis.Repo, hhConfig modules.HHConfig) *Service {
+func NewService(repo *redis.Repo, hhConfig *modules.HHConfig) *Service {
 	return &Service{repo: repo, hhConfig: hhConfig}
 }
 
