@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"gateway/config/modules"
@@ -10,7 +9,6 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httputil"
-	"time"
 )
 
 type ProxyHandler struct {
@@ -58,54 +56,14 @@ func (ph *ProxyHandler) Handler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, fmt.Sprintf("handlers.ProxyHandler.Handler: %v", err.Error()), http.StatusInternalServerError)
 			return
 		}
+
 		switch accessStatus {
 		case reverse_proxy.Allow:
 			slog.Info(fmt.Sprintf("handlers.ProxyHandler.Handler: succesfully redirecting to backend"))
 			ph.backendProxy.ServeHTTP(w, r)
 		case reverse_proxy.Update:
-			request, err := ph.service.BuildRefreshTokensRequest(r.Context(), sessionId.Value)
-			if err != nil {
-				http.Error(w, fmt.Sprintf("handlers.ProxyHandler.Handler: %v", err.Error()), http.StatusInternalServerError)
-			}
 
-			client := &http.Client{}
-			response, err := client.Do(request)
-			if err != nil {
-				http.Error(w, fmt.Sprintf("handlers.ProxyHandler.Handler: %v", err.Error()), http.StatusInternalServerError)
-				return
-			}
-
-			defer func() {
-				if err := response.Body.Close(); err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
-				}
-			}()
-
-			if response.StatusCode != http.StatusOK {
-				http.Error(w, "handlers.ProxyHandler.Handler: something went wrong in authorization", http.StatusUnauthorized)
-				return
-			}
-
-			var results struct {
-				AccessToken  string `json:"access_token"`
-				RefreshToken string `json:"refresh_token"`
-				ExpiresIn    int    `json:"expires_in"`
-			}
-
-			err = json.NewDecoder(response.Body).Decode(&results)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			err = ph.service.SetTokens(
-				r.Context(),
-				sessionId.Value,
-				results.AccessToken,
-				results.RefreshToken,
-				time.Duration(results.ExpiresIn)*time.Second,
-			)
+			err = ph.service.DoTokenRequest(r.Context(), sessionId.Value)
 			if err != nil {
 				http.Error(w, fmt.Sprintf("handlers.ProxyHandler.Handler: %v", err.Error()), http.StatusInternalServerError)
 				return
@@ -126,7 +84,6 @@ func (ph *ProxyHandler) Handler(w http.ResponseWriter, r *http.Request) {
 		default:
 			http.Error(w, fmt.Sprintf("handlers.ProxyHandler.Handler: %v", target), http.StatusUnauthorized)
 			return
-
 		}
 
 	} else {
