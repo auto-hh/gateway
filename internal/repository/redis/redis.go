@@ -60,3 +60,14 @@ func (r *Repo) Set(ctx context.Context, key string, value string, expirationTime
 func (r *Repo) Delete(ctx context.Context, key string) error {
 	return r.client.Del(ctx, key).Err()
 }
+
+func (r *Repo) Exists(ctx context.Context, key string) (bool, error) {
+
+	result, err := r.client.Exists(ctx, key).Result()
+
+	if err != nil {
+		return false, fmt.Errorf("redis.Exists: %w", err)
+	}
+
+	return result > 0, nil
+}
