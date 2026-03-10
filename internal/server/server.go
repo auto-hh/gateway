@@ -5,6 +5,7 @@ import (
 	"gateway/config/modules"
 	"gateway/internal/handlers"
 	"gateway/internal/service/oauth"
+	"gateway/internal/service/reverse_proxy"
 	"net/http"
 )
 
@@ -13,10 +14,10 @@ type Server struct {
 	oauthHandler *handlers.OAuthHandler
 }
 
-func NewServer(baseConfig *modules.BaseConfig, service *oauth.Service) *Server {
+func NewServer(baseConfig *modules.BaseConfig, serviceOauth *oauth.Service, serviceReverseProxy *reverse_proxy.Service) *Server {
 	return &Server{
-		proxyHandler: handlers.NewProxyHandler(baseConfig),
-		oauthHandler: handlers.NewOAuthHandler(service),
+		proxyHandler: handlers.NewProxyHandler(baseConfig, serviceReverseProxy),
+		oauthHandler: handlers.NewOAuthHandler(serviceOauth),
 	}
 }
 

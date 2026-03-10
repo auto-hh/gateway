@@ -77,7 +77,7 @@ func (s *Service) BuildTokenRequest(ctx context.Context, sessionId string, state
 	request, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodPost,
-		"https://hh.ru/oauth/token",
+		"https://api.hh.ru/oauth/token",
 		strings.NewReader(params.Encode()),
 	)
 	request.Header.Set("User-Agent", fmt.Sprintf("%s/%s (%s)", s.hhConfig.GetAppName(), s.hhConfig.GetAppVersion(), s.hhConfig.GetDevContact()))
