@@ -37,7 +37,7 @@ type RepoConfig struct {
 func NewRepoConfig() *RepoConfig {
 	user := RepoUser.MustGet()
 
-	password := RepoPassword.MustGet()
+	password := RepoPassword.Get("")
 
 	addr := RepoAddr.MustGet()
 
