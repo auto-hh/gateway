@@ -28,7 +28,7 @@ func NewBaseConfig() *BaseConfig {
 	serverPortString := ServerPort.MustGet()
 
 	serverPort, err := strconv.Atoi(serverPortString)
-	if err == nil {
+	if err != nil {
 		serverPort = DefaultServerPort
 	}
 
