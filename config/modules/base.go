@@ -10,6 +10,8 @@ import (
 const (
 	BackendUrl  config.ConfigKey = "BACKEND_URL"
 	FrontendUrl config.ConfigKey = "FRONTEND_URL"
+	BackendHost config.ConfigKey = "BACKEND_HOST"
+	FrontendHost config.ConfigKey = "FRONTEND_HOST"
 	ServerPort  config.ConfigKey = "SERVER_PORT"
 
 	DefaultServerPort int = 8080
@@ -42,9 +44,9 @@ func NewBaseConfig() *BaseConfig {
 		panic(fmt.Sprintf("config.NewConfig: failed to parse FRONTEND_URL: %v", err))
 	}
 
-	backendHost := BackendUrl.MustGet()
+	backendHost := BackendHost.MustGet()
 
-	frontendHost := FrontendUrl.MustGet()
+	frontendHost := FrontendHost.MustGet()
 
 	return &BaseConfig{
 		serverPort:   serverPort,

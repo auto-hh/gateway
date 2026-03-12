@@ -31,9 +31,8 @@ func NewProxyHandler(baseConfig *modules.BaseConfig, service *reverse_proxy.Serv
 }
 
 func (ph *ProxyHandler) Handler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("handlers.ProxyHandler.Handler call")
-
-	target := r.URL.Host
+	target := r.Host
+	slog.Info("handlers.ProxyHandler.Handler call", slog.String("host", target))
 
 	switch target {
 	case ph.frontendHost:
@@ -75,7 +74,7 @@ func (ph *ProxyHandler) Handler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			http.SetCookie(w, &http.Cookie{
-				Name:     "authorized",
+				Name:     "auth",
 				Value:    "true",
 				Path:     "/",
 				HttpOnly: false,

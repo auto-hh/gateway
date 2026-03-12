@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"gateway/internal/service/oauth"
+	"gateway/internal/utils"
 	"net/http"
 	"net/url"
 	"time"
@@ -30,7 +31,7 @@ func NewOAuthHandler(Service *oauth.Service) *OAuthHandler {
 func (o *OAuthHandler) Begin(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("AuthBeginHandler is ready to work")
 
-	sessionIdCookie, err := r.Cookie("sessionId")
+	sessionIdCookie, err := r.Cookie(utils.CookieKeySessionId)
 
 	if err != nil && !errors.Is(err, http.ErrNoCookie) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -47,7 +48,7 @@ func (o *OAuthHandler) Begin(w http.ResponseWriter, r *http.Request) {
 		}
 
 		http.SetCookie(w, &http.Cookie{
-			Name:     "session_id",
+			Name:     utils.CookieKeySessionId,
 			Value:    sessionId,
 			Path:     "/",
 			HttpOnly: true,
