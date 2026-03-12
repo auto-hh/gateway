@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"gateway/config/modules"
-	"log"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -15,22 +14,7 @@ type Repo struct {
 }
 
 func NewRepo(ctx context.Context, repoConfig *modules.RepoConfig) *Repo {
-
-	client, err := NewClient(ctx, repoConfig)
-	if err != nil {
-		log.Fatal(fmt.Sprintf("redis.NewRepo: %v", err))
-	}
-
-	return &Repo{
-		client: client,
-	}
-}
-
-func NewClient(
-	ctx context.Context,
-	repoConfig *modules.RepoConfig,
-) (*redis.Client, error) {
-	db := redis.NewClient(&redis.Options{
+	client := redis.NewClient(&redis.Options{
 		Addr:         repoConfig.GetAddr(),
 		DB:           repoConfig.GetDbName(),
 		Username:     repoConfig.GetUser(),
@@ -41,28 +25,36 @@ func NewClient(
 		WriteTimeout: repoConfig.GetWriteTimeout(),
 	})
 
-	if err := db.Ping(ctx).Err(); err != nil {
-		fmt.Printf("redis.NewClient: %s", err.Error())
-		return nil, err
+	return &Repo{
+		client: client,
 	}
-
-	return db, nil
 }
 
-func (r *Repo) Get(ctx context.Context, key string) (string, error) {
-	return r.client.Get(ctx, key).Result()
+func (r *Repo) Get(ctx context.Context, key string) (value string, err error) {
+	value, err = r.client.Get(ctx, key).Result()
+	if err != nil {
+		err = fmt.Errorf("redis.Repo.Get: %v", err)
+	}
+	return
 }
 
 func (r *Repo) Set(ctx context.Context, key string, value string, expirationTime time.Duration) error {
-	return r.client.Set(ctx, key, value, expirationTime).Err()
+	err := r.client.Set(ctx, key, value, expirationTime).Err()
+	if err != nil {
+		return fmt.Errorf("redis.Repo.Set: %v", err)
+	}
+	return nil
 }
 
 func (r *Repo) Delete(ctx context.Context, key string) error {
-	return r.client.Del(ctx, key).Err()
+	err := r.client.Del(ctx, key).Err()
+	if err != nil {
+		return fmt.Errorf("redis.Repo.Del: %v", err)
+	}
+	return nil
 }
 
 func (r *Repo) Exists(ctx context.Context, key string) (bool, error) {
-
 	result, err := r.client.Exists(ctx, key).Result()
 
 	if err != nil {
