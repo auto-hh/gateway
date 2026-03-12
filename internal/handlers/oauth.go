@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"gateway/internal/service/oauth"
 	"gateway/internal/utils"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"time"
@@ -75,7 +77,7 @@ func (o *OAuthHandler) Begin(w http.ResponseWriter, r *http.Request) {
 func (o *OAuthHandler) Complete(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("AuthEndHandler is ready to work")
 
-	sessionIdCookie, err := r.Cookie("sessionId")
+	sessionIdCookie, err := r.Cookie(utils.CookieKeySessionId)
 
 	if err != nil {
 		if errors.Is(err, http.ErrNoCookie) {
@@ -117,6 +119,8 @@ func (o *OAuthHandler) Complete(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	if response.StatusCode != http.StatusOK {
+		data, _ := io.ReadAll(response.Body)
+		slog.Error("o.client.Do(request)", slog.String("Status", response.Status), slog.Int("StatusCode", response.StatusCode), slog.String("data", string(data)))
 		http.Error(w, "oauth.Complete: something went wrong in authorization", http.StatusUnauthorized)
 		return
 	}
@@ -146,7 +150,7 @@ func (o *OAuthHandler) Complete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, &http.Cookie{
-		Name:     "authorized",
+		Name:     "auth",
 		Value:    "true",
 		Path:     "/",
 		HttpOnly: false,

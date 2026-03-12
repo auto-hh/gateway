@@ -72,15 +72,16 @@ func (s *Service) BuildTokenRequest(ctx context.Context, sessionId string, state
 	params.Set("client_secret", s.hhConfig.GetClientSecret())
 	params.Set("code", code)
 	params.Set("grant_type", "authorization_code")
-	params.Set("redirect_uri", "/")
+	params.Set("redirect_uri", s.hhConfig.GetRedirectUri())
 
 	request, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodPost,
-		"https://api.hh.ru/oauth/token",
+		"https://api.hh.ru/token",
 		strings.NewReader(params.Encode()),
 	)
-	request.Header.Set("User-Agent", fmt.Sprintf("%s/%s (%s)", s.hhConfig.GetAppName(), s.hhConfig.GetAppVersion(), s.hhConfig.GetDevContact()))
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	request.Header.Set("HH-User-Agent", fmt.Sprintf("%s/%s (%s)", s.hhConfig.GetAppName(), s.hhConfig.GetAppVersion(), s.hhConfig.GetDevContact()))
 
 	return request, nil
 }
