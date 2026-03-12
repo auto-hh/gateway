@@ -29,7 +29,7 @@ func (s *Server) Start(port int) error {
 	mux.HandleFunc("/", s.proxyHandler.Handler)
 	mux.HandleFunc("/oauth/begin/", s.oauthHandler.Begin)
 	mux.HandleFunc("/oauth/complete/", s.oauthHandler.Complete)
-	slog.Info("start listening on 0.0.0.0:%d", port)
+	slog.Info("start listening", slog.Int("port", port))
 	err := http.ListenAndServe(fmt.Sprintf(":%d", port), loggingMiddleware(mux))
 	if err != nil {
 		return fmt.Errorf("server.Start: %v", err)
