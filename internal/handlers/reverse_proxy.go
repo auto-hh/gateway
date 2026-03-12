@@ -31,24 +31,29 @@ func NewProxyHandler(baseConfig *modules.BaseConfig, service *reverse_proxy.Serv
 }
 
 func (ph *ProxyHandler) Handler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("handlers.ProxyHandler.Handler is ready to work")
-	sessionId, err := r.Cookie(utils.CookieKeySessionId)
-
-	if errors.Is(err, http.ErrNoCookie) {
-		slog.Info(fmt.Sprintf("handlers.ProxyHandler: Redirecting to authorization, %v", err))
-		http.Redirect(w, r, "/oauth/begin/", http.StatusSeeOther)
-	} else {
-		w.WriteHeader(http.StatusBadRequest) //TODO: чзх что с обработкой ошибок?
-		return
-	}
+	fmt.Println("handlers.ProxyHandler.Handler call")
 
 	target := r.URL.Host
-	slog.Info(fmt.Sprintf("handlers.ProxyHandler.Handler: user with id %s exists, wants to see %s", sessionId, target))
 
-	if target == ph.frontendHost {
-		slog.Info(fmt.Sprintf("handlers.ProxyHandler.Handler: succesfully redirecting to frontend"))
+	switch target {
+	case ph.frontendHost:
+		slog.Info("handlers.ProxyHandler.Handler: succesfully redirecting to frontend")
 		ph.frontendProxy.ServeHTTP(w, r)
-	} else if target == ph.backendHost {
+
+	case ph.backendHost:
+		sessionId, err := r.Cookie(utils.CookieKeySessionId)
+
+		if err != nil {
+			if errors.Is(err, http.ErrNoCookie) {
+				slog.Info("unauthorized")
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+				return
+			} else {
+				slog.Error("r.Cookie(utils.CookieKeySessionId)", slog.String("err", err.Error()))
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
+		}
 
 		accessStatus, err := ph.service.CheckToken(r.Context(), sessionId.Value)
 
@@ -59,7 +64,7 @@ func (ph *ProxyHandler) Handler(w http.ResponseWriter, r *http.Request) {
 
 		switch accessStatus {
 		case reverse_proxy.Allow:
-			slog.Info(fmt.Sprintf("handlers.ProxyHandler.Handler: succesfully redirecting to backend"))
+			slog.Info("handlers.ProxyHandler.Handler: succesfully redirecting to backend")
 			ph.backendProxy.ServeHTTP(w, r)
 		case reverse_proxy.Update:
 
@@ -79,16 +84,13 @@ func (ph *ProxyHandler) Handler(w http.ResponseWriter, r *http.Request) {
 				MaxAge:   SessionIdAgeTime,
 			})
 
-			slog.Info(fmt.Sprintf("handlers.ProxyHandler.Handler: succesfully redirecting to backend after authorization"))
+			slog.Info("handlers.ProxyHandler.Handler: succesfully redirecting to backend after authorization")
 			ph.backendProxy.ServeHTTP(w, r)
 		default:
 			http.Error(w, fmt.Sprintf("handlers.ProxyHandler.Handler: %v", target), http.StatusUnauthorized)
-			return
 		}
 
-	} else {
+	default:
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 	}
-
-	slog.Info(fmt.Sprintf("handlers.ProxyHandler.Handler: finished work"))
 }
