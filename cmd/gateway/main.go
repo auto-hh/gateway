@@ -11,7 +11,6 @@ import (
 )
 
 func main() {
-
 	cfg := config.NewConfig()
 	ctx := context.Background()
 	repo := redis.NewRepo(ctx, cfg.GetRepoConfig())
