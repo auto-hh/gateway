@@ -51,7 +51,7 @@ func (o *OAuthHandler) Begin(w http.ResponseWriter, r *http.Request) {
 			Value:    sessionId,
 			Path:     "/",
 			HttpOnly: true,
-			Secure:   true,
+			Secure:   false,
 			SameSite: http.SameSiteLaxMode,
 			MaxAge:   SessionIdAgeTime,
 		})
@@ -149,7 +149,7 @@ func (o *OAuthHandler) Complete(w http.ResponseWriter, r *http.Request) {
 		Value:    "true",
 		Path:     "/",
 		HttpOnly: false,
-		Secure:   true,
+		Secure:   false,
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   SessionIdAgeTime,
 	})
