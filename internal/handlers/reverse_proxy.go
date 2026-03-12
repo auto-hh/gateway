@@ -74,7 +74,7 @@ func (ph *ProxyHandler) Handler(w http.ResponseWriter, r *http.Request) {
 				Value:    "true",
 				Path:     "/",
 				HttpOnly: false,
-				Secure:   true,
+				Secure:   false,
 				SameSite: http.SameSiteLaxMode,
 				MaxAge:   SessionIdAgeTime,
 			})
